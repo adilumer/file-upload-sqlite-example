@@ -1,0 +1,17 @@
+{
+  "name": "upload-demo-sqlite",
+  "version": "1.0.0",
+  "description": "SQLite ve Upload demosu",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./index.js",
+    "test": "jest"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "sequelize": "^6.37.4",
+    "sqlite3": "^5.1.7"
+  }
+}
