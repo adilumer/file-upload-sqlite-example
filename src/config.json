@@ -2,5 +2,12 @@
   "database": {
     "dialect": "sqlite",
     "storage": "../data/db.sqlite"
+  },
+  "mimeTypes": {
+    ".html": "text/html",
+    ".js": "text/javascript",
+    ".css": "text/css",
+    ".png": "image/png",
+    ".jpg": "image/jpeg"
   }
 }

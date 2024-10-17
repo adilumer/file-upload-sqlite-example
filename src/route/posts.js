@@ -10,7 +10,6 @@ function getPostById(request, response) {
     response.end();
   }).catch((error)=>{
     console.log(error.response);
-
     response.writeHead(500, {'content-type': "text/plain"});
     response.write("Internal Server Error.");
     response.end();

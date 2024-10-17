@@ -1,6 +1,7 @@
 const UserModel = require("../model/user");
 
 async function createUser(request, response) {
+  console.log(">>>");
   const {name, email} = request.parsed.json;
 
   const user = await UserModel.create(name, email);
