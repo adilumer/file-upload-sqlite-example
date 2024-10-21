@@ -1,33 +1,49 @@
 const nodemailer = require('nodemailer');
 
-async function main() {
-  // Create a test account using Ethereal
-  let testAccount = {
-    user: 'melvin.vonrueden89@ethereal.email',
-    pass: 'XRfCBWRQeY3vzTbEPN'
-  }
+const emailTemplate = String(fs.readFileSync("../data/email-template.html", { encoding: "utf8" }));
 
-  // Set up transporter
-  let transporter = nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
-    port: 587,
-    auth: {
-      user: testAccount.user,
-      pass: testAccount.pass,
-    },
+function replaceHtmlString(html, data){
+  Object.keys(data).forEach((key, index)=>{
+    const replacer = new RegExp("{{"+key+"}}", "g");
+    html = html.replace(replacer, data[key]);
   });
- 
-  // Send mail
-  let info = await transporter.sendMail({
-    from: '"Sender Name" <sender@example.com>',
-    to: 'recipient@example.com',
-    subject: 'Hello',
-    text: 'Hello world',
-    html: '<b>Hello world</b>',
-  });
-
-  console.log('Message sent: %s', info.messageId);
-  console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+  return html.replace(emailTemplate,)
 }
 
-main().catch(console.error);
+const testAccount = {
+  user: 'melvin.vonrueden89@ethereal.email',
+  pass: 'XRfCBWRQeY3vzTbEPN'
+}
+
+const emailClient = nodemailer.createTransport({
+  host: 'smtp.ethereal.email',
+  port: 587,
+  auth: {
+    user: testAccount.user,
+    pass: testAccount.pass,
+  },
+});
+
+async function sendEmail(to, content, subject, data){
+  let info = await emailClient.sendMail({
+    from: '"İSKİ Ekibi" <iski@nodejsworkshop.com>',
+    to: to,
+    subject: subject,
+    text: content,
+    html: replaceHtmlString(emailTemplate, data),
+  });
+  
+  const id = info.messageId;
+  const url = nodemailer.getTestMessageUrl(info);
+
+  console.log('Message sent: %s', info.messageId);
+  console.log('Preview URL: %s', url);
+
+  return {
+    url, id
+  }
+}
+
+module.exports = {
+  sendEmail,
+}

@@ -2,12 +2,10 @@ const soap = require('soap');
 
 // URL of the WSDL (Web Services Description Language)
 const WSDL_URL = 'http://www.dneonline.com/calculator.asmx?wsdl';
+
 // Create a SOAP client
-
 async function Add(intA, intB){
-
   const client = await soap.createClientAsync(WSDL_URL);
-  
   return new Promise ((resolve, reject)=>{
     client.Add({intA, intB}, (error, response)=>{
       if (error || !response){ 

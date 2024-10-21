@@ -1,8 +1,13 @@
-const { getFileNameString, formatBytes } = require("./util");
+const { getFileNameString, formatBytes, responseError } = require("./util");
 
-async function parseRequest(request) {
+async function parseRequest(request, response) {
   const requestSize = request.headers["content-length"] ?? 0;
   console.log("Incoming request size is", formatBytes(requestSize));
+
+  if (config.maxUploadSizeKB && requestSize > (config.maxUploadSizeKB*1024)) {
+    responseError(response, {status: 400, message: "POST_SIZE_LIMIT_EXCEEDED"});
+    return {error: {status: 400, message: "POST_SIZE_LIMIT_EXCEEDED"}};
+  }
 
   return new Promise((resolve, reject) => {
     request.parsed = {}

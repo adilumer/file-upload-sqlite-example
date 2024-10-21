@@ -5,6 +5,7 @@ const { responseError } = require("../lib/util");
 const routes = {
   user: require("./user"),
   posts: require("./posts"),
+  calc: require("./calc"),
   upload: require("./uploads"),
 }
 
@@ -64,7 +65,11 @@ async function requestHandler(request, response) {
 
   request.publicDirectory = publicDirectory;
 
-  const parsedBody = await parseRequest(request);
+  const parsedBody = await parseRequest(request, response);
+
+  if(parsedBody.error) {
+    return;
+  }
 
   let handler = getHandlerFromPath(request);
 

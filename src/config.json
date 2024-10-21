@@ -1,4 +1,5 @@
 {
+  "maxUploadSizeKB": 500,
   "database": {
     "dialect": "sqlite",
     "storage": "../data/db.sqlite"
