@@ -1,39 +1,30 @@
 const UserModel = require("../model/user");
+const { responseJSON, responseError, responseText } = require("../lib/util");
 
 async function createUser(request, response) {
   console.log(">>>");
   const {name, email} = request.parsed.json;
 
   const user = await UserModel.create(name, email);
-    
-  response.writeHead(200, {"Content-Type": "application/json"});
-  response.write(JSON.stringify(user));
-  response.end();
+  responseJSON(response, user);
 }
 
 async function getUser(request, response) {
   const userId = request.parsed.json.id;
 
   if(isNaN(Number(userId))) {
-    response.writeHead(417, {"Content-Type": "text/plain"});
-    response.write("Invalid parameter.");
-    response.end();
+    responseError(response, {status: 417, message: "Invalid parameter."});
     return;
   }
 
   const user = await UserModel.getById(userId);
 
   if(user) {
-    response.writeHead(200, {"Content-Type": "application/json"});
-    response.write(JSON.stringify(user));
-    response.end();
-
+    responseJSON(response, user);
     return;
   } 
 
-  response.writeHead(204, {"Content-Type": "text/plain"});
-  response.write("No Content.");
-  response.end();
+  responseText(response);
 }
 
 module.exports = {

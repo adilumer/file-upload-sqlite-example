@@ -1,6 +1,9 @@
-const { getFileNameString } = require("./util");
+const { getFileNameString, formatBytes } = require("./util");
 
 async function parseRequest(request) {
+  const requestSize = request.headers["content-length"] ?? 0;
+  console.log("Incoming request size is", formatBytes(requestSize));
+
   return new Promise((resolve, reject) => {
     request.parsed = {}
 
@@ -11,7 +14,7 @@ async function parseRequest(request) {
 
     const isFormData = request.headers["content-type"]?.startsWith?.("multipart/form-data");
     if (isFormData) {
-      parseFormData(request).then(resolve);
+      parseMultipartFormData(request).then(resolve);
       return;
     }
 
@@ -68,58 +71,79 @@ askdfjlksadjf
 
  */
 
-function parseFormData(request) {
+function splitBuffer(buffer, boundary) {
+  const boundaryBuffer = Buffer.from(boundary);
+  const parts = [];
+  let start = 0;
+
+  while (true) {
+    const boundaryIndex = buffer.indexOf(boundaryBuffer, start);
+    if (boundaryIndex === -1) break;
+    parts.push(buffer.slice(start, boundaryIndex));
+    start = boundaryIndex + boundaryBuffer.length;
+  }
+
+  return parts;
+}
+
+function splitBufferAt(buffer, separator) {
+  const separatorIndex = buffer.indexOf(separator);
+  if (separatorIndex === -1) return [buffer, Buffer.alloc(0)];
+  const header = buffer.slice(0, separatorIndex);
+  const body = buffer.slice(separatorIndex + separator.length);
+  return [header, body];
+}
+
+
+function parseMultipartFormData(request) {
+  const boundary = '--' + request.headers["content-type"]?.split('boundary=')[1];
+
   return new Promise((resolve, reject) => {
+    let buffer = Buffer.alloc(0);
 
-    console.log(">>> parsing");
-    const boundary = '--' + request.headers["content-type"]?.split('boundary=')[1];
-    
-    let body = "";
-    request.on("data", (chunk) => { body += chunk; });
+    // Collect incoming data chunks
+    request.on('data', (chunk) => {
+      buffer = Buffer.concat([buffer, chunk]);
+    });
+
     request.on('end', () => {
-      const parts = body.split(boundary).filter(part => part !== '' && part !== '--\r\n');
-      const formData = {};
-
+      const parts = splitBuffer(buffer, boundary);
+      const result = {};
+      
       parts.forEach((part) => {
-        // Split headers and body for each part
-        const [rawHeaders, rawBody] = part.split("\r\n\r\n");
-        const headers = parseFormDataHeaders(rawHeaders);
+        const [header, body] = splitBufferAt(part, Buffer.from('\r\n\r\n'));
+        const headerStr = header.toString();
+        const dispositionMatch = headerStr.match(/name="([^"]+)"/);
+        const fileNameMatch = headerStr.match(/filename="([^"]+)"/);
+        
+        const fieldName = dispositionMatch ? dispositionMatch[1] : null;
+        const isFile = fileNameMatch != null;
+        
+        if (isFile) {
+          const fileHeaders = parseFormDataHeaders(headerStr);
 
-        if (headers["content-disposition"]) {
-          const contentDisposition = headers["content-disposition"];
-          const nameMatch = contentDisposition.match(/name="([^"]+)"/);
-          const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+          const fileBuffer = body.slice(0, body.length - 2); // Remove trailing \r\n
 
-          if (nameMatch) {
-            const fieldName = nameMatch[1];
+          const filename = getFileNameString(fileNameMatch[1]);
+          const filePath = path.join(request.publicDirectory, filename);
 
-            if (filenameMatch) {
-              // Handle file uploads
-              const filename = getFileNameString(filenameMatch[1]);
-              // TODO: HANDLE BINARY FILES PROPERLY...
-              const fileContent = Buffer.from(rawBody.split(0, -2), "binary"); // Properly handle binary data
-              const filePath = path.join(request.publicDirectory, filename);
+          // Save the file to disk as binary
+          fs.writeFileSync(filePath, fileBuffer);
 
-              // Save the file to disk as binary
-              fs.writeFileSync(filePath, fileContent);
-
-              formData[fieldName] = {
-                filename,
-                path: filePath,
-                size: fileContent.length,
-                mimeType: headers["content-type"],
-              };
-            } else {
-              // Handle regular text fields
-              const fieldValue = rawBody.slice(0, -2); // Removing trailing \r\n
-              formData[fieldName] = fieldValue;
-            }
-          }
+          result[fieldName] = {
+            filename,
+            path: filePath,
+            size: fileBuffer.length,
+            mimeType: fileHeaders["content-type"],
+          };
+        } else if (fieldName) {
+          result[fieldName] = body.slice(0, body.length - 2).toString(); // Remove trailing \r\n
         }
-
-        request.parsed.formData = formData;
-        resolve(formData);
       });
+
+      request.parsed.formData = result;
+      resolve(result);
+    
     });
   });
 }

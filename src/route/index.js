@@ -1,5 +1,6 @@
 const { parseRequest } = require("../lib/body-parser");
 const publicDirectory = path.join(__dirname, "..", "static");
+const { responseError } = require("../lib/util");
 
 const routes = {
   user: require("./user"),
@@ -8,9 +9,7 @@ const routes = {
 }
 
 function defaultHandler(request, response) {
-  response.writeHead(404, {'content-type': "text/plain"});
-  response.write("Not Found.");
-  response.end();
+  responseError(response, {status: 404, message: "Not Found."});
 }
 
 function getHandlerFromPath(request){
@@ -83,9 +82,7 @@ async function requestHandler(request, response) {
     handler(request, response);
   } catch (e) {
     console.log(e);
-    response.writeHead(500, {'content-type': "text/plain"});
-    response.write("Internal Server Error.");
-    response.end();
+    responseError(response);
   }
 }
 
