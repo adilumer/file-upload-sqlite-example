@@ -38,9 +38,19 @@ async function setCache(key, data){
   return true;
 }
 
+function closeClient() {
+  if(!RedisClient.isOpen) {
+    return null;
+  }
+
+  console.log("closing redis client..");
+  RedisClient.disconnect();
+  return true;
+}
+
 module.exports = {
   createRedisClient,
-  client: RedisClient,
+  closeClient,
   getCachedData,
   setCache
 } 
